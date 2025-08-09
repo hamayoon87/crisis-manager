@@ -33,6 +33,7 @@ init_db()
 
 # Pydantic model
 class NewsItem(BaseModel):
+    id: int
     title: str
     content: str
 
