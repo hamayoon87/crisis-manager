@@ -53,3 +53,12 @@ def get_news():
     rows = cursor.fetchall()
     conn.close()
     return [{"title": row[0], "content": row[1]} for row in rows]
+
+@app.delete("/news/{news_id}")
+def delete_news(news_id: int):
+    conn = sqlite3.connect("news.db")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM news WHERE id = ?", (news_id,))
+    conn.commit()
+    conn.close()
+    return {"status": "deleted", "id": news_id}

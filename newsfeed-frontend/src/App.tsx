@@ -1,39 +1,55 @@
 import React, { useState, useEffect } from 'react';
 
+const backendUrl = 'https://crisis-manager-backend.onrender.com';
+
 function App() {
   const [news, setNews] = useState('');
-  const [newsList, setNewsList] = useState<{ title: string; content: string }[]>([]);
+  const [newsList, setNewsList] = useState<{ id: number; title: string; content: string }[]>([]);
 
-  const backendUrl = 'https://crisis-manager-backend.onrender.com';
-
-  // Fetch news from backend on load
+  // Fetch existing news from backend on component mount
   useEffect(() => {
     fetch(`${backendUrl}/news`)
       .then((res) => res.json())
       .then((data) => setNewsList(data))
-      .catch((err) => console.error('Error fetching news:', err));
+      .catch((err) => console.error('Failed to fetch news:', err));
   }, []);
 
+  // Handle adding new news item
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!news.trim()) return;
 
-    const payload = {
-      title: `News ${new Date().toLocaleString()}`, // You can make this an input
-      content: news.trim(),
-    };
+    // Here, assuming news input is full content, using first line as title or fallback
+    const title = news.trim().split('\n')[0].slice(0, 50); // First 50 chars for title
+    const content = news.trim();
 
     fetch(`${backendUrl}/add-news`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ title, content }),
     })
-      .then((res) => res.json())
-      .then(() => {
-        setNewsList([payload, ...newsList]);
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to add news');
         setNews('');
+        // Refresh news list after adding
+        return fetch(`${backendUrl}/news`);
       })
-      .catch((err) => console.error('Error adding news:', err));
+      .then((res) => res.json())
+      .then((data) => setNewsList(data))
+      .catch((err) => console.error(err));
+  }
+
+  // Handle deleting news item
+  function handleDelete(id: number) {
+    fetch(`${backendUrl}/news/${id}`, {
+      method: 'DELETE',
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to delete news');
+        // Remove deleted news from UI list immediately
+        setNewsList(newsList.filter((item) => item.id !== id));
+      })
+      .catch((err) => console.error(err));
   }
 
   return (
@@ -63,13 +79,22 @@ function App() {
         <h2 className="text-xl font-semibold mb-4">Added News</h2>
         {newsList.length === 0 && <p className="text-gray-600">No news added yet.</p>}
         <ul>
-          {newsList.map((item, i) => (
+          {newsList.map((item) => (
             <li
-              key={i}
-              className="bg-white p-4 rounded mb-3 shadow break-words whitespace-pre-wrap"
+              key={item.id}
+              className="bg-white p-4 rounded mb-3 shadow break-words whitespace-pre-wrap flex justify-between items-start"
             >
-              <strong>{item.title}</strong>
-              <p>{item.content}</p>
+              <div>
+                <strong>{item.title}</strong>
+                <p>{item.content}</p>
+              </div>
+              <button
+                onClick={() => handleDelete(item.id)}
+                className="ml-4 text-red-600 hover:text-red-800 font-bold"
+                aria-label={`Delete news titled ${item.title}`}
+              >
+                🗑
+              </button>
             </li>
           ))}
         </ul>
