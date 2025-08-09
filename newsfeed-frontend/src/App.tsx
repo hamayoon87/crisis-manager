@@ -1,54 +1,63 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
-const backendUrl = 'https://crisis-manager-backend.onrender.com';
+const backendUrl = "https://crisis-manager-backend.onrender.com";
+
+type NewsItem = {
+  id: number;
+  title: string;
+  content: string;
+};
 
 function App() {
-  const [news, setNews] = useState('');
-  const [newsList, setNewsList] = useState<{ id: number; title: string; content: string }[]>([]);
+  const [news, setNews] = useState("");
+  const [newsList, setNewsList] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Fetch existing news from backend on component mount
+  // Fetch news list from backend on mount
   useEffect(() => {
-    fetch(`${backendUrl}/news`)
-      .then((res) => res.json())
-      .then((data) => setNewsList(data))
-      .catch((err) => console.error('Failed to fetch news:', err));
+    fetchNewsList();
   }, []);
 
-  // Handle adding new news item
+  // Fetch news helper function
+  const fetchNewsList = () => {
+    setLoading(true);
+    fetch(`${backendUrl}/news`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch news");
+        return res.json();
+      })
+      .then((data) => setNewsList(data))
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  };
+
+  // Add new news item
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!news.trim()) return;
 
-    // Here, assuming news input is full content, using first line as title or fallback
-    const title = news.trim().split('\n')[0].slice(0, 50); // First 50 chars for title
     const content = news.trim();
+    const title = content.split("\n")[0].slice(0, 50); // First line as title
 
     fetch(`${backendUrl}/add-news`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, content }),
     })
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to add news');
-        setNews('');
-        // Refresh news list after adding
-        return fetch(`${backendUrl}/news`);
+        if (!res.ok) throw new Error("Failed to add news");
+        setNews("");
+        fetchNewsList();
       })
-      .then((res) => res.json())
-      .then((data) => setNewsList(data))
       .catch((err) => console.error(err));
   }
 
-  // Handle deleting news item
+  // Delete news item by id
   function handleDelete(id: number) {
-    console.log("Deleting news with id:", id);
-    fetch(`${backendUrl}/news/${id}`, {
-      method: 'DELETE',
-    })
+    fetch(`${backendUrl}/news/${id}`, { method: "DELETE" })
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to delete news');
-        // Remove deleted news from UI list immediately
-        setNewsList(newsList.filter((item) => item.id !== id));
+        if (!res.ok) throw new Error("Failed to delete news");
+        setNewsList((prev) => prev.filter((item) => item.id !== id));
       })
       .catch((err) => console.error(err));
   }
@@ -56,7 +65,11 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6">
       <h1 className="text-3xl font-bold mb-6 text-blue-700">Add News Content</h1>
-      <form onSubmit={handleSubmit} className="w-full max-w-lg bg-white p-6 rounded shadow">
+
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-lg bg-white p-6 rounded shadow"
+      >
         <label htmlFor="news" className="block mb-2 font-semibold text-gray-700">
           News Text
         </label>
@@ -70,7 +83,10 @@ function App() {
         />
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+          disabled={loading}
+          className={`w-full py-2 rounded text-white transition ${
+            loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+          }`}
         >
           Add News
         </button>
@@ -78,7 +94,13 @@ function App() {
 
       <section className="mt-10 w-full max-w-lg">
         <h2 className="text-xl font-semibold mb-4">Added News</h2>
-        {newsList.length === 0 && <p className="text-gray-600">No news added yet.</p>}
+
+        {loading && <p className="text-gray-600">Loading news...</p>}
+
+        {!loading && newsList.length === 0 && (
+          <p className="text-gray-600">No news added yet.</p>
+        )}
+
         <ul>
           {newsList.map((item) => (
             <li
@@ -93,6 +115,7 @@ function App() {
                 onClick={() => handleDelete(item.id)}
                 className="ml-4 text-red-600 hover:text-red-800 font-bold"
                 aria-label={`Delete news titled ${item.title}`}
+                disabled={loading}
               >
                 🗑
               </button>
