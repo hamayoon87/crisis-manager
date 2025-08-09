@@ -49,10 +49,10 @@ def add_news(item: NewsItem):
 def get_news():
     conn = sqlite3.connect("news.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT title, content FROM news ORDER BY id DESC")
+    cursor.execute("SELECT id, title, content FROM news ORDER BY id DESC")
     rows = cursor.fetchall()
     conn.close()
-    return [{"title": row[0], "content": row[1]} for row in rows]
+    return [{"id": row[0], "title": row[1], "content": row[2]} for row in rows]
 
 @app.delete("/news/{news_id}")
 def delete_news(news_id: int):
