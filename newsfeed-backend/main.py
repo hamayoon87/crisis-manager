@@ -6,10 +6,10 @@ from typing import List
 
 app = FastAPI()
 
-# Enable CORS so frontend can call backend
+# Enable CORS for your frontend domain
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://crisis-manager.onrender.com"],
+    allow_origins=["https://crisis-manager.onrender.com"],  # your frontend URL here
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,14 +31,16 @@ def init_db():
 
 init_db()
 
-# Pydantic model
-class NewsItem(BaseModel):
-    id: int
+# Pydantic models
+class NewsCreate(BaseModel):
     title: str
     content: str
 
+class NewsRead(NewsCreate):
+    id: int
+
 @app.post("/add-news")
-def add_news(item: NewsItem):
+def add_news(item: NewsCreate):
     conn = sqlite3.connect("news.db")
     cursor = conn.cursor()
     cursor.execute("INSERT INTO news (title, content) VALUES (?, ?)", (item.title, item.content))
@@ -46,7 +48,7 @@ def add_news(item: NewsItem):
     conn.close()
     return {"status": "success"}
 
-@app.get("/news", response_model=List[NewsItem])
+@app.get("/news", response_model=List[NewsRead])
 def get_news():
     conn = sqlite3.connect("news.db")
     cursor = conn.cursor()
