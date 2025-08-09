@@ -9,7 +9,7 @@ app = FastAPI()
 # Enable CORS so frontend can call backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://crisis-manager.onrender.com/"],
+    allow_origins=["https://crisis-manager.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
