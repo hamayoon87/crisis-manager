@@ -41,6 +41,7 @@ function App() {
 
   // Handle deleting news item
   function handleDelete(id: number) {
+    console.log("Deleting news with id:", id);
     fetch(`${backendUrl}/news/${id}`, {
       method: 'DELETE',
     })
