@@ -1,14 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function App() {
   const [news, setNews] = useState('');
-  const [newsList, setNewsList] = useState<string[]>([]);
+  const [newsList, setNewsList] = useState<{ title: string; content: string }[]>([]);
+
+  const backendUrl = 'https://crisis-manager-backend.onrender.com';
+
+  // Fetch news from backend on load
+  useEffect(() => {
+    fetch(`${backendUrl}/news`)
+      .then((res) => res.json())
+      .then((data) => setNewsList(data))
+      .catch((err) => console.error('Error fetching news:', err));
+  }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!news.trim()) return;
-    setNewsList([news.trim(), ...newsList]);
-    setNews('');
+
+    const payload = {
+      title: `News ${new Date().toLocaleString()}`, // You can make this an input
+      content: news.trim(),
+    };
+
+    fetch(`${backendUrl}/add-news`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        setNewsList([payload, ...newsList]);
+        setNews('');
+      })
+      .catch((err) => console.error('Error adding news:', err));
   }
 
   return (
@@ -39,8 +64,12 @@ function App() {
         {newsList.length === 0 && <p className="text-gray-600">No news added yet.</p>}
         <ul>
           {newsList.map((item, i) => (
-            <li key={i} className="bg-white p-4 rounded mb-3 shadow break-words whitespace-pre-wrap">
-              {item}
+            <li
+              key={i}
+              className="bg-white p-4 rounded mb-3 shadow break-words whitespace-pre-wrap"
+            >
+              <strong>{item.title}</strong>
+              <p>{item.content}</p>
             </li>
           ))}
         </ul>
